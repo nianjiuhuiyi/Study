@@ -1,0 +1,22 @@
+{
+  "FileVersion": 2,
+  "Id": "b668aaa0-b5a0-457a-9347-0010f6c87b40",
+  "Items": [
+    {
+      "Id": "0739536f-9bc9-48ea-8b48-ae6c3f6ebd37",
+      "Command": ""
+    },
+    {
+      "Id": "200310ce-8d7b-401c-a8af-269098316ded",
+      "Command": "\"C:\\\\Users\\\\Administrator\\\\Music\\\\123.txt\""
+    },
+    {
+      "Id": "a4cdf43b-6380-4e72-a792-8bf9183e0caa",
+      "Command": "\"C:\\\\Users\\\\Administrator\\\\Music\\\\456.txt\""
+    },
+    {
+      "Id": "124a54f2-d281-4365-9efa-b9a8e6117068",
+      "Command": "\"C:\\\\Users\\\\Administrator\\\\Music\\\\789.txt\""
+    }
+  ]
+}
