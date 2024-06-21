@@ -11,7 +11,6 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 VTK_MODULE_INIT(vtkRenderingOpenGL2);
 
 int user_data;
-
 void viewerOneOff(pcl::visualization::PCLVisualizer& viewer) {
 	viewer.setBackgroundColor(1.0, 0.5, 1.0);
 	pcl::PointXYZ o;
@@ -38,19 +37,19 @@ void viewerPsycho(pcl::visualization::PCLVisualizer& viewer) {
 */
 
 int main() {
-	//pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
-	//pcl::io::loadPCDFile(R"(C:\Users\Administrator\Downloads\rabbit.pcd)", *cloud);
-
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>());
-	//pcl::io::loadPLYFile<pcl::PointXYZRGBA>(R"(F:\colmap\peach\0525\fused_ACSII.ply)", *cloud);
-	pcl::io::loadPLYFile<pcl::PointXYZRGBA>(R"(F:\colmap\peach\0525\fused.ply)", *cloud);   // 内容一定要是二进制的才行
+	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
+	pcl::io::loadPCDFile(R"(C:\Users\Administrator\Downloads\rabbit.pcd)", *cloud);
 
 
+	//pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>());
+	////pcl::io::loadPLYFile<pcl::PointXYZRGBA>(R"(F:\colmap\peach\0525\fused_ACSII.ply)", *cloud);
+	//pcl::io::loadPLYFile<pcl::PointXYZRGBA>(R"(F:\colmap\peach\0525\fused.ply)", *cloud);   // 内容一定要是二进制的才行
+
+	/*
+		在读取ply文件时候，首先要分清该文件是点云还是网格类文件。如果是点云文件，则按照一般的点云类去读取即可，如果ply文件是网格类，则需要
+	*/
 	//pcl::PolygonMesh mesh;
-	//pcl::io::loadPLYFile(R"(F:\colmap\peach\0525\meshed-poisson.ply)", mesh);
-
-
-
+	//pcl::io::loadPLYFile(R"(F:\colmap\peach\0525\meshed-poisson.ply)", mesh);  // 这就是网格 类
 
 
 	pcl::visualization::CloudViewer viewer("Cloud Viewer");

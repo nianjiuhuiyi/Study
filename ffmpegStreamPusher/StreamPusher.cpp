@@ -30,7 +30,7 @@ void StreamPusher::start() {
 	bool conn = this->connectSrc();
 
 	// 下面这里用 do{...} while(0) 来代替了原来的多层if else，代码看起来好一点，原来的嵌套太多层了，（但这代码还没测过，先放这里）
-	/*
+	
 	do 
 	{	
 		if (!conn) {
@@ -163,137 +163,138 @@ void StreamPusher::start() {
 		sws_freeContext(sws_ctx_src2dst);
 		sws_ctx_src2dst = NULL;
 	} while (0);
-	*/
+	
 
-	if (conn) {
-		conn = this->connectDst();
-		if (conn) {
-			// 初始化参数
-			AVFrame* srcFrame = av_frame_alloc(); // pkt->解码->frame
-			AVFrame* dstFrame = av_frame_alloc();
 
-			dstFrame->width = mDstVideoWidth;
-			dstFrame->height = mDstVideoHeight;
-			dstFrame->format = mDstVideoCodecCtx->pix_fmt;  // AV_PIX_FMT_YUV420P;
-			int dstFrame_buff_size = av_image_get_buffer_size(mDstVideoCodecCtx->pix_fmt, mDstVideoWidth, mDstVideoHeight, 1);
-			uint8_t* dstFrame_buff = (uint8_t*)av_malloc(dstFrame_buff_size);
-			av_image_fill_arrays(dstFrame->data, dstFrame->linesize, dstFrame_buff,
-				mDstVideoCodecCtx->pix_fmt, mDstVideoWidth, mDstVideoHeight, 1);
+	//if (conn) {
+	//	conn = this->connectDst();
+	//	if (conn) {
+	//		// 初始化参数
+	//		AVFrame* srcFrame = av_frame_alloc(); // pkt->解码->frame
+	//		AVFrame* dstFrame = av_frame_alloc();
 
-			SwsContext* sws_ctx_src2dst = sws_getContext(mSrcVideoWidth, mSrcVideoHeight,
-				mSrcVideoCodecCtx->pix_fmt,
-				mDstVideoWidth, mDstVideoHeight,
-				mDstVideoCodecCtx->pix_fmt,
-				SWS_BICUBIC, nullptr, nullptr, nullptr);
+	//		dstFrame->width = mDstVideoWidth;
+	//		dstFrame->height = mDstVideoHeight;
+	//		dstFrame->format = mDstVideoCodecCtx->pix_fmt;  // AV_PIX_FMT_YUV420P;
+	//		int dstFrame_buff_size = av_image_get_buffer_size(mDstVideoCodecCtx->pix_fmt, mDstVideoWidth, mDstVideoHeight, 1);
+	//		uint8_t* dstFrame_buff = (uint8_t*)av_malloc(dstFrame_buff_size);
+	//		av_image_fill_arrays(dstFrame->data, dstFrame->linesize, dstFrame_buff,
+	//			mDstVideoCodecCtx->pix_fmt, mDstVideoWidth, mDstVideoHeight, 1);
 
-			AVPacket srcPkt; // 拉流时获取的未解码帧
-			AVPacket* dstPkt = av_packet_alloc(); // 推流时编码后的帧
-			int continuity_read_error_count = 0; // 连续读错误数量
-			int continuity_write_error_count = 0; // 连续写错误数量
-			int ret = -1;
-			int64_t frameCount = 0;
-			while (true) {// 不中断会继续执行
-				if (av_read_frame(mSrcFmtCtx, &srcPkt) >= 0) {
-					continuity_read_error_count = 0;
-					if (srcPkt.stream_index == mSrcVideoIndex) {
-						// 读取pkt->解码->编码->推流
-						ret = avcodec_send_packet(mSrcVideoCodecCtx, &srcPkt);
-						if (ret == 0) {
-							ret = avcodec_receive_frame(mSrcVideoCodecCtx, srcFrame);
-							if (ret == 0) {
-								frameCount++;
-								// 解码成功->修改分辨率->修改编码
+	//		SwsContext* sws_ctx_src2dst = sws_getContext(mSrcVideoWidth, mSrcVideoHeight,
+	//			mSrcVideoCodecCtx->pix_fmt,
+	//			mDstVideoWidth, mDstVideoHeight,
+	//			mDstVideoCodecCtx->pix_fmt,
+	//			SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-								// frame（yuv420p） 转 frame_bgr
-								sws_scale(sws_ctx_src2dst,
-									srcFrame->data, srcFrame->linesize, 0, mSrcVideoHeight,
-									dstFrame->data, dstFrame->linesize);
+	//		AVPacket srcPkt; // 拉流时获取的未解码帧
+	//		AVPacket* dstPkt = av_packet_alloc(); // 推流时编码后的帧
+	//		int continuity_read_error_count = 0; // 连续读错误数量
+	//		int continuity_write_error_count = 0; // 连续写错误数量
+	//		int ret = -1;
+	//		int64_t frameCount = 0;
+	//		while (true) {// 不中断会继续执行
+	//			if (av_read_frame(mSrcFmtCtx, &srcPkt) >= 0) {
+	//				continuity_read_error_count = 0;
+	//				if (srcPkt.stream_index == mSrcVideoIndex) {
+	//					// 读取pkt->解码->编码->推流
+	//					ret = avcodec_send_packet(mSrcVideoCodecCtx, &srcPkt);
+	//					if (ret == 0) {
+	//						ret = avcodec_receive_frame(mSrcVideoCodecCtx, srcFrame);
+	//						if (ret == 0) {
+	//							frameCount++;
+	//							// 解码成功->修改分辨率->修改编码
 
-								//开始编码 start
-								dstFrame->pts = dstFrame->pkt_dts = av_rescale_q_rnd(frameCount, mDstVideoCodecCtx->time_base, mDstVideoStream->time_base, (AVRounding)(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+	//							// frame（yuv420p） 转 frame_bgr
+	//							sws_scale(sws_ctx_src2dst,
+	//								srcFrame->data, srcFrame->linesize, 0, mSrcVideoHeight,
+	//								dstFrame->data, dstFrame->linesize);
 
-								/*
-								原来代码中使用的是 dstFrame->pkt_duration =
-								报错：'AVFrame::pkt_duration': 被声明已否决。 chatgpt解答：表示使用了已经被弃用的 AVFrame::pkt_duration 字段。在新的 FFmpeg 版本中，推荐使用 AVFrame::pkt_duration2 或者 AVFrame::best_effort_timestamp 字段
-								*/
-								dstFrame->best_effort_timestamp = av_rescale_q_rnd(1, mDstVideoCodecCtx->time_base, mDstVideoStream->time_base, (AVRounding)(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+	//							//开始编码 start
+	//							dstFrame->pts = dstFrame->pkt_dts = av_rescale_q_rnd(frameCount, mDstVideoCodecCtx->time_base, mDstVideoStream->time_base, (AVRounding)(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 
-								dstFrame->pkt_pos = frameCount;
+	//							/*
+	//							原来代码中使用的是 dstFrame->pkt_duration =
+	//							报错：'AVFrame::pkt_duration': 被声明已否决。 chatgpt解答：表示使用了已经被弃用的 AVFrame::pkt_duration 字段。在新的 FFmpeg 版本中，推荐使用 AVFrame::pkt_duration2 或者 AVFrame::best_effort_timestamp 字段
+	//							*/
+	//							dstFrame->best_effort_timestamp = av_rescale_q_rnd(1, mDstVideoCodecCtx->time_base, mDstVideoStream->time_base, (AVRounding)(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 
-								ret = avcodec_send_frame(mDstVideoCodecCtx, dstFrame);
-								if (ret >= 0) {
-									ret = avcodec_receive_packet(mDstVideoCodecCtx, dstPkt);
-									if (ret >= 0) {
-										// 推流 start
-										dstPkt->stream_index = mDstVideoIndex;
-										ret = av_interleaved_write_frame(mDstFmtCtx, dstPkt);
-										if (ret < 0) {// 推流失败
-											LOGI("av_interleaved_write_frame error: ret=%d", ret);
-											++continuity_write_error_count;
-											if (continuity_write_error_count > 5) {// 连续5次推流失败，则断开连接
-												LOGI("av_interleaved_write_frame error: continuity_write_error_count=%d,dstUrl=%s", continuity_write_error_count, mDstUrl.data());
-												break;
-											}
-										}
-										else {
-											continuity_write_error_count = 0;
-										}
-										// 推流 end
-									}
-									else {
-										LOGI("avcodec_receive_packet error: ret=%d", ret);
-									}
-								}
-								else {
-									LOGI("avcodec_send_frame error: ret=%d", ret);
-								}
-								// 开始编码 end
-							}
-							else {
-								LOGI("avcodec_receive_frame error: ret=%d", ret);
-							}
-						}
-						else {
-							LOGI("avcodec_send_packet error: ret=%d", ret);
-						}
+	//							dstFrame->pkt_pos = frameCount;
 
-						// std::this_thread::sleep_for(std::chrono::milliseconds(1));
-					}
-					else {
-						//av_free_packet(&pkt);//过时
-						av_packet_unref(&srcPkt);
-					}
-				}
-				else {
-					// av_free_packet(&pkt);//过时
-					av_packet_unref(&srcPkt);
-					++continuity_read_error_count;
-					if (continuity_read_error_count > 5) {// 连续5次拉流失败，则断开连接
-						LOGI("av_read_frame error: continuity_read_error_count=%d,srcUrl=%s", continuity_read_error_count, mSrcUrl.data());
-						break;
-					}
-					else {
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
-					}
-				}
-			}
+	//							ret = avcodec_send_frame(mDstVideoCodecCtx, dstFrame);
+	//							if (ret >= 0) {
+	//								ret = avcodec_receive_packet(mDstVideoCodecCtx, dstPkt);
+	//								if (ret >= 0) {
+	//									// 推流 start
+	//									dstPkt->stream_index = mDstVideoIndex;
+	//									ret = av_interleaved_write_frame(mDstFmtCtx, dstPkt);
+	//									if (ret < 0) {// 推流失败
+	//										LOGI("av_interleaved_write_frame error: ret=%d", ret);
+	//										++continuity_write_error_count;
+	//										if (continuity_write_error_count > 5) {// 连续5次推流失败，则断开连接
+	//											LOGI("av_interleaved_write_frame error: continuity_write_error_count=%d,dstUrl=%s", continuity_write_error_count, mDstUrl.data());
+	//											break;
+	//										}
+	//									}
+	//									else {
+	//										continuity_write_error_count = 0;
+	//									}
+	//									// 推流 end
+	//								}
+	//								else {
+	//									LOGI("avcodec_receive_packet error: ret=%d", ret);
+	//								}
+	//							}
+	//							else {
+	//								LOGI("avcodec_send_frame error: ret=%d", ret);
+	//							}
+	//							// 开始编码 end
+	//						}
+	//						else {
+	//							LOGI("avcodec_receive_frame error: ret=%d", ret);
+	//						}
+	//					}
+	//					else {
+	//						LOGI("avcodec_send_packet error: ret=%d", ret);
+	//					}
 
-			// 销毁
-			av_frame_free(&srcFrame);
-			//av_frame_unref(srcFrame);
-			srcFrame = NULL;
+	//					// std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	//				}
+	//				else {
+	//					//av_free_packet(&pkt);//过时
+	//					av_packet_unref(&srcPkt);
+	//				}
+	//			}
+	//			else {
+	//				// av_free_packet(&pkt);//过时
+	//				av_packet_unref(&srcPkt);
+	//				++continuity_read_error_count;
+	//				if (continuity_read_error_count > 5) {// 连续5次拉流失败，则断开连接
+	//					LOGI("av_read_frame error: continuity_read_error_count=%d,srcUrl=%s", continuity_read_error_count, mSrcUrl.data());
+	//					break;
+	//				}
+	//				else {
+	//					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	//				}
+	//			}
+	//		}
 
-			av_frame_free(&dstFrame);
-			//av_frame_unref(dstFrame);
-			dstFrame = NULL;
+	//		// 销毁
+	//		av_frame_free(&srcFrame);
+	//		//av_frame_unref(srcFrame);
+	//		srcFrame = NULL;
 
-			av_free(dstFrame_buff);
-			dstFrame_buff = NULL;
+	//		av_frame_free(&dstFrame);
+	//		//av_frame_unref(dstFrame);
+	//		dstFrame = NULL;
 
-			sws_freeContext(sws_ctx_src2dst);
-			sws_ctx_src2dst = NULL;
-		}
-	}
+	//		av_free(dstFrame_buff);
+	//		dstFrame_buff = NULL;
+
+	//		sws_freeContext(sws_ctx_src2dst);
+	//		sws_ctx_src2dst = NULL;
+	//	}
+	//}
 
 	this->closeConnectDst();
 	this->closeConnectSrc();

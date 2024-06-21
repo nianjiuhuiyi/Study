@@ -12,6 +12,8 @@
 
 #include "cvui.hpp"
 
+#include <tuple>
+
 
 typedef struct _MV_PIXEL_CONVERT_PARAM_T_ {
 	unsigned short      nWidth;             ///< [IN]     \~chinese 图像宽           \~english Width
@@ -94,13 +96,13 @@ int main() {
 	std::string num = "3.14";
 	std::cout << (num.data() == num.c_str()) << std::endl;
 	*/
-	
+
 
 
 	{
 		std::cout << 123 << std::endl;
 		unsigned char* data = nullptr;
-	
+
 		//MV_CC_PIXEL_CONVERT_PARAM mydata = {0};
 		//mydata.nWidth = 12;
 		//std::cout << mydata.nWidth << std::endl;
@@ -118,7 +120,7 @@ int main() {
 	gdb(numbers);  // [example.cpp:21 (main)] numbers = {7, 13, 42} (std::vector<int32_t>)
 
 	// 3、在一个表达式中
-	my_func(3);  
+	my_func(3);
 
 	// 4、获取当前时间(比较直接简单，获取时间戳和用时还是用笔记里另外的)
 	gdb(gdb::time());
@@ -142,15 +144,37 @@ int main() {
 
 	//uint8_t points[5][2] = { {60, 60}, {40, 10}, {100, 100}, {200, 60}, {300, 50} };
 
-	std::vector<cv::Point> points = { {60, 60}, {40, 10}, {100, 100}, {200, 60}, {300, 50} };
-	cv::Mat img = cv::Mat::ones(cv::Size(640, 640), CV_8UC3);
-	cv::rectangle(img, cv::Point(10, 10), cv::Point(60, 60), cv::Scalar(0, 0, 255), 2);
-	cv::fillPoly(img, points, cv::Scalar(0, 0, 255));
-	cv::imshow("123", img);
-	cv::waitKey(0);
-	cv::destroyAllWindows();
+	//std::vector<cv::Point> points = { {60, 60}, {40, 10}, {100, 100}, {200, 60}, {300, 50} };
+	//cv::Mat img = cv::Mat::ones(cv::Size(640, 640), CV_8UC3);
+	//cv::rectangle(img, cv::Point(10, 10), cv::Point(60, 60), cv::Scalar(0, 0, 255), 2);
+	//cv::fillPoly(img, points, cv::Scalar(0, 0, 255));
+	//cv::imshow("123", img);
+	//cv::waitKey(0);
+	//cv::destroyAllWindows();
 
-	
+	using detectType = std::tuple<std::string, float, std::vector<int>>;
+
+	std::vector<detectType> vec;
+	vec.push_back({ "YBKC", 0.5, {1, 2, 3, 4} });
+	vec.push_back({ "XDSC", 0.78, {4, 5, 6, 7} });
+
+	// 方式一：
+	//std::string name;
+	//float conf;
+	//std::vector<int> position;
+
+	//for (detectType& item : vec) {
+	//	std::tie(name, conf, position) = item;
+	//	std::cout << name << ": " << conf << std::endl;
+	//}
+
+	// 方式二：
+	for (detectType& item : vec) {
+		std::string name = std::get<0>(item);
+		float conf = std::get<1>(item);
+		std::vector<int> position = std::get<2>(item);
+		std::cout << name << ": " << conf << std::endl;
+	}
 
 	system("pause");
 	return 0;
