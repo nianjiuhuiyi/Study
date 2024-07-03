@@ -1,172 +1,38 @@
-ï»¿#include <queue>
-#include <thread>
-#include <chrono>
 #include <iostream>
-#include <string>
-#include <memory>
-#include <mutex>
-#include <opencv2/opencv.hpp>
-
-void func() {
-	cv::Mat image = cv::imread(R"(C:\Users\Administrator\Pictures\01.png)");
-
-	cv::Mat res;
-	cv::Rect rect(10, 10, 400, 400);
-	cv::resize(image(rect), res, cv::Size(400, 400));
-
-	cv::imshow("1", res);
-	cv::waitKey(0);
-	cv::destroyAllWindows();
-}
-
-
-
-std::mutex mtx;   // åŠ é”ä¿è¯çº¿ç¨‹å®‰å…¨
-bool gExit = false;
-
-std::string get_timestamp() {
-	/*std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-	std::time_t time = ms.count();
-	char str[100];
-	std::strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", std::localtime(&time));*/
-
-	std::tm time_info{};
-	std::time_t timestamp = std::time(nullptr);
-	errno_t err = localtime_s(&time_info, &timestamp);
-	if (err) {
-		std::cout << "Failed to convert timestamp to time\n";
-		return std::string("error");
-	}
-	char str[100]{};
-	std::strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", &time_info);
-	return std::string(str);
-}
-
-// å¦‚æœä¼ è¿›æ¥çš„æ˜¯æ™ºèƒ½æŒ‡é’ˆï¼Œè¿™é‡Œçš„å‚æ•°ä¹Ÿè¦ç»™æ™ºèƒ½æŒ‡é’ˆï¼Œä¸èƒ½æ˜¯ std::queue<cv::Mat>* que
-void get_image(const char* rtsp_path, std::shared_ptr<std::queue<cv::Mat>> que, int video_stride=15) {
-	cv::VideoCapture cap;
-	cap.open(rtsp_path);
-	while (1) {
-		if (cap.isOpened()) break;
-		else {
-			std::cerr << rtsp_path << " æ‰“å¼€å¤±è´¥ï¼Œæ­£åœ¨é‡è¯•..." << std::endl;
-			cap.open(rtsp_path);
-		}
-	}
-
-	long long int n = 0;
-	while (1) {
-		n += 1;
-		bool success = cap.grab();     // .read() = .grab() followed by .retrieve()
-		if (!success) {
-			while (1) {
-				bool ret = cap.open(rtsp_path);
-				if (ret) break;
-				else {
-					std::cerr << get_timestamp() <<": æ‘„åƒå¤´è¯»å–å¤±è´¥ï¼Œ30ç§’åå†æ¬¡å°è¯•..." << std::endl;
-					std::this_thread::sleep_for(std::chrono::seconds(30));
-				}
-			}
-			continue;
-		}
-
-		if (n % video_stride != 0) continue;
-
-		cv::Mat frame;
-		success = cap.retrieve(frame);
-		if (!success) {
-			while (1) {
-				bool ret = cap.open(rtsp_path);
-				if (ret) break;
-				else {
-					std::cerr << get_timestamp() << ": æ‘„åƒå¤´è¯»å–å¤±è´¥ï¼Œ30ç§’åå†æ¬¡å°è¯•..." << std::endl;
-					std::this_thread::sleep_for(std::chrono::seconds(30));
-				}
-			}
-			continue;
-		}
-
-		// å¿…é¡»åŠ é”ä¿è¯çº¿ç¨‹å®‰å…¨
-		std::unique_lock<std::mutex> lock(mtx);
-		if (que->size() >= 2)
-			que->pop();
-		que->push(frame);
-		lock.unlock();
-
-		std::cout << "ç°åœ¨çš„size: " << que->size() << std::endl;
-		if (gExit) break;
-	}
-	cap.release();
-	std::cout << "å­çº¿ç¨‹é€€å‡º" << std::endl;
-}
+#include "DisplayUtils.h"
 
 
 int main(int argc, char** argv) {
-	const char* video_path = "rtsp://192.168.108.131:554/user=admin&password=&channel=1&stream=0.sdp?";
-	cv::namedWindow("hello");
 
-	// å›¾åƒé˜Ÿåˆ—
-	std::shared_ptr<std::queue<cv::Mat>> que = std::make_shared<std::queue<cv::Mat>>();
-	// ä¸‹é¢ä¸ç®¡å“ªç§æ–¹å¼ï¼Œå‡½æ•°å“ªæ€•æœ‰é»˜è®¤å‚æ•°ï¼Œä¹Ÿä¸€å®šè¦ç»™é»˜è®¤å‚æ•°çš„å€¼ï¼Œä¸ç„¶æ˜¯æ‰¾ä¸åˆ°å¯¹åº”å‡½æ•°çš„ã€‚
-	/*æ–¹å¼ä¸€ï¼šä½¿ç”¨ bind ç»‘å®š
-	auto f = std::bind(get_image, video_path, que, 15);
-	std::thread img_thread(f);
-	*/
-	/*æ–¹å¼äºŒï¼šä½¿ç”¨lambda
-	std::thread img_thread([video_path, que]() {get_image(video_path, que, 1); });  // å€¼æ•è·
-	std::thread img_thread([&video_path, &que]() {get_image(video_path, que, 1); });  // å¼•ç”¨æ•è·ï¼Œ
-	*/
-	std::thread img_thread([&]() {get_image(video_path, que, 1); });  // è¿™ä¹Ÿæ˜¯å¼•ç”¨æ•è·
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	std::vector<std::string> categories = {
+		"Ô²Öù¹ö×ÓÖá³Ğ", "Ô²Öù¹ö×ÓÖá³ĞÄÚÈ¦", "Ô²×¶¹ö×ÓÖá³Ğ", "Ô²×¶¹ö×ÓÖá³ĞÍâÈ¦", "ÓÍ·â", "Öá·â", "µç¶¯°âÊÖÌ×Í²", "ÖáÍ·ÂİÄ¸", "²¨ĞÎµ¯»ÉÈ¦", "µ÷ÕûµæÆ¬", "½ô¹Ì½º", "ÑáÑõ½º", "ÃÜ·â½º", "ÄÚÁù½Ç°âÊÖ", "¿ª¿Ú°âÊÖ", "Å¤¾Ø°âÊÖ", "Èû³ß", "ÏğÆ¤´¸", "Í­°ô", "Ìú´¸", "M6ÂİË¨", "M8ÂİË¨", "SKF³å»÷Í²", "ÒõÑô×ª×Ó", "Ç°¶Ë¸Ç", "ÅÅÆø¶Ë¶Ë¸Ç", "ÅÅÆø¶ËÖá³Ğ×ù¶ËÃæ", "µ¼ÏòÌ×", "¶¨Î»Ïú", "SKF³å»÷»·", "µç¶¯°âÊÖ", "Èó»¬ÓÍ", "ÃÀæÚÈó»¬Ö¬"
+	};
+
+	std::vector<Annotation> annotations = {
+		{608, 356, 1, {1003.0, 232.0, 57.0, 77.0}, 4389.0, 0, {{1033.0, 308.5, 1027.0, 308.5, 1023.0, 307.5, 1018.0, 304.5, 1012.5, 299.0, 1008.5, 294.0, 1003.5, 280.0, 1002.5, 279.0, 1002.5, 265.0, 1004.5, 261.0, 1004.5, 258.0, 1008.0, 252.5, 1010.0, 252.5, 1012.5, 250.0, 1013.5, 246.0, 1016.5, 241.0, 1021.0, 235.5, 1029.0, 231.5, 1038.0, 231.5, 1043.0, 234.5, 1048.0, 236.5, 1052.5, 241.0, 1052.5, 242.0, 1058.5, 254.0, 1059.5, 258.0, 1059.5, 275.0, 1058.5, 276.0, 1058.5, 284.0, 1057.5, 287.0, 1054.5, 291.0, 1047.0, 298.5, 1046.0, 298.5, 1038.0, 306.5, 1033.0, 308.5}, {1038.5, 291.0, 1041.0, 290.5, 1044.5, 286.0, 1044.5, 271.0, 1038.5, 261.0, 1035.5, 258.0, 1033.5, 254.0, 1031.0, 251.5, 1028.0, 250.5, 1022.0, 250.5, 1020.5, 252.0, 1019.5, 257.0, 1019.5, 271.0, 1020.5, 272.0, 1021.5, 278.0, 1033.0, 289.5, 1036.0, 291.5, 1038.5, 291.0}}
+		},
+		{1752, 356, 9,{536.0, 743.0, 46.0, 65.0}, 2990.0, 0, {{564.0, 807.5, 554.0, 807.5, 550.0, 806.5, 544.5, 801.0, 541.5, 797.0, 537.5, 790.0, 536.5, 787.0, 536.5, 778.0, 535.5, 777.0, 535.5, 772.0, 536.5, 771.0, 536.5, 763.0, 540.5, 754.0, 549.0, 745.5, 556.0, 742.5, 563.0, 742.5, 568.0, 744.5, 574.5, 750.0, 578.5, 757.0, 581.5, 768.0, 581.5, 782.0, 580.5, 787.0, 576.5, 797.0, 573.5, 801.0, 568.0, 806.5, 564.0, 807.5}, {561.5, 795.0, 566.0, 793.5, 571.5, 785.0, 572.5, 782.0, 572.5, 771.0, 571.5, 767.0, 568.5, 761.0, 565.0, 757.5, 561.0, 755.5, 556.0, 755.5, 553.0, 756.5, 550.5, 759.0, 547.5, 764.0, 547.5, 767.0, 545.5, 770.0, 545.5, 783.0, 548.5, 789.0, 552.0, 793.5, 556.0, 795.5, 561.5, 795.0}}
+		},
+	};
+
+	std::vector<cv::Scalar> colors = {
+		cv::Scalar(255, 0, 255), cv::Scalar(53, 129, 2)
+	};
 	
+	DisplayUtils du;
 
-	while (true) {
+	du.increase_transparency();
+	
+	
+	std::string img_path = "C:\\Users\\Administrator\\Downloads\\16026.jpg";
+	cv::Mat image = cv::imread(img_path);
 
-		if (que && !que->empty()) {
-			std::cout << "123" << std::endl;
-			cv::Mat frame;
+	cv::Mat res = du.draw_annotations(image, categories, annotations, colors);
 
-			// å¿…é¡»åŠ é”ä¿è¯çº¿ç¨‹å®‰å…¨
-			std::unique_lock<std::mutex> lock(mtx);
-			frame = que->front();
-			que->pop();
-			lock.unlock();
+	cv::namedWindow("test", 1);
+	cv::imshow("test", res);
+	cv::waitKey(0);
 
-			// æ¨¡æ‹Ÿæ£€æµ‹ç”¨æ—¶
-			std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-			cv::imshow("hello", frame);
-			if ((cv::waitKey(1) & 0xFF) != 255) {
-				gExit = true;
-				break;
-			}
-		}
-		else {
-			std::cout << get_timestamp() << "pause" << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
-
-	}
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-
-	cv::destroyAllWindows();
-
-	//cv::VideoCapture cap;
-	//cap.open(video_path);
-	//cv::Mat frame;
-
-	//while (cap.isOpened()) {
-	//	bool ret = cap.read(frame);
-	//	if (!ret) break;
-	//	cap >> frame;
-	//	que->push(frame);
-	//	std::cout << frame.size << typeid(frame.size).name() << std::endl;
-	//	std::cout << frame.size() << typeid(frame.size()).name() << "\n" << std::endl;
-
-	//	cv::imshow("hello", frame);
-	//	if ((cv::waitKey(1) & 0xFF) != 255) break;
-	//}
-	//cv::destroyAllWindows();
-	//cap.release();
+	//system("pause");
 	return 0;
 }
