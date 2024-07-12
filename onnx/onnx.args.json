@@ -1,0 +1,14 @@
+{
+  "FileVersion": 2,
+  "Id": "ded5b098-dc52-4ca9-8fbf-295c83903671",
+  "Items": [
+    {
+      "Id": "8584c581-ee08-4a66-b35b-e8f569fd9640",
+      "Command": "--encoder_model_path  \"F:\\onnx_models\\vit_b\\encoder\\sam_vit_b_01ec64_encoder.onnx\"   --decoder_model_path  \"F:\\onnx_models\\vit_b\\decoder\\sam_vit_b_01ec64_decoder.onnx\"  --image_path \"C:\\Users\\Administrator\\Downloads\\16026.jpg\"   --use_demo true --use_boxinfo true"
+    },
+    {
+      "Id": "8ab07802-89eb-4f05-ade5-a86e8ddedfd9",
+      "Command": "--encoder_model_path sam_vit_b_01ec64_encoder.onnx --decoder_model_path sam_vit_b_01ec64_decoder.onnx --image_path images\\01.jpg --use_demo true --use_boxinfo true"
+    }
+  ]
+}
