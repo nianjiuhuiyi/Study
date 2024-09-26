@@ -1,7 +1,8 @@
 #include <iostream>
+#include <thread>
 #include "StreamPusher.h"
 #include "Log.h"
-#include <thread>
+
 extern "C" {
 #include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
@@ -28,7 +29,7 @@ void StreamPusher::start() {
 	LOGI("StreamPusher::start begin");
 
 	bool conn = this->connectSrc();
-
+	
 	// 下面这里用 do{...} while(0) 来代替了原来的多层if else，代码看起来好一点，原来的嵌套太多层了，（但这代码还没测过，先放这里）
 	
 	do 

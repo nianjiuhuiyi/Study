@@ -1,9 +1,8 @@
 #include <iostream>
 #include "DisplayUtils.h"
 
-
-int main(int argc, char** argv) {
-
+// 这是纯opencv，不涉及到pybind11的代码的demo展示
+void show() {
 	std::vector<std::string> categories = {
 		"圆柱滚子轴承", "圆柱滚子轴承内圈", "圆锥滚子轴承", "圆锥滚子轴承外圈", "油封", "轴封", "电动扳手套筒", "轴头螺母", "波形弹簧圈", "调整垫片", "紧固胶", "厌氧胶", "密封胶", "内六角扳手", "开口扳手", "扭矩扳手", "塞尺", "橡皮锤", "铜棒", "铁锤", "M6螺栓", "M8螺栓", "SKF冲击筒", "阴阳转子", "前端盖", "排气端端盖", "排气端轴承座端面", "导向套", "定位销", "SKF冲击环", "电动扳手", "润滑油", "美孚润滑脂"
 	};
@@ -18,12 +17,12 @@ int main(int argc, char** argv) {
 	std::vector<cv::Scalar> colors = {
 		cv::Scalar(255, 0, 255), cv::Scalar(53, 129, 2)
 	};
-	
+
 	DisplayUtils du;
 
 	du.increase_transparency();
-	
-	
+
+
 	std::string img_path = "C:\\Users\\Administrator\\Downloads\\16026.jpg";
 	cv::Mat image = cv::imread(img_path);
 
@@ -32,6 +31,13 @@ int main(int argc, char** argv) {
 	cv::namedWindow("test", 1);
 	cv::imshow("test", res);
 	cv::waitKey(0);
+}
+
+
+int main(int argc, char** argv) {
+	show();
+	
+
 
 	//system("pause");
 	return 0;

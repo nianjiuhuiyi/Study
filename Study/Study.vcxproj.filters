@@ -26,5 +26,11 @@
     <ClInclude Include="cvui.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="SimpleThreadPool.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DemuxingDecoding.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

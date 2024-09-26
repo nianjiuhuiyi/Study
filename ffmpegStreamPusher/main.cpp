@@ -7,11 +7,9 @@ int main(int argc, char* argv[]) {
 	//ffmpeg RTSP推流 https://www.jianshu.com/p/a9c7b08be46e
 	//ffmpeg 推流参数  https://blog.csdn.net/qq_17368865/article/details/79101659
 
-	const char* srcUrl = "rtsp://192.168.108.134:554/user=admin&password=&channel=1&stream=1.sdp?";
-	//const char* srcUrl = "C:\\Users\\Administrator\\Videos\\source.200kbps.768x320.flv";
+	const char* srcUrl = "rtsp://192.168.108.135:554/user=admin&password=&channel=1&stream=1.sdp?";
+	// const char* srcUrl = "C:\\Users\\Administrator\\Videos\\sintel_trailer-480p.webm";
 
-	//const char* dstUrl = "rtmp://192.168.125.128/live/456";
-	//const char* dstUrl = "rtsp://localhost/test";
 	const char* dstUrl = "rtmp://192.168.108.218/live/123";
 
 	int dstVideoFps = 20;
@@ -23,7 +21,5 @@ int main(int argc, char* argv[]) {
 	StreamPusher pusher(srcUrl, dstUrl, dstVideoWidth, dstVideoHeight, dstVideoFps);
 	pusher.start();
 
-    std::cout << "Hello World!\n";
-	system("pause");
 	return 0;
 }

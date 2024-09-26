@@ -40,8 +40,16 @@ int main(int argc, char** argv) {
 
 	httplib::Client cli("192.168.108.52", 7714);
 	auto res = cli.Post("/iot/http/push", headers, req_json.dump(), "application/json");
-	std::cout << "status:" << res->status << std::endl;
-	std::cout << "body:" << res->body << std::endl;
+	// 返回的结果是指针的，一定要判断是不是空指针,不然网络不可达，直接使用res会崩溃,使用try包裹都不行
+	if (res) {
+		std::cout << "status:" << res->status << std::endl;
+		std::cout << "body:" << res->body << std::endl;
+	}
+	else {
+		std::cerr << "消息发送失败，可能是目标网络不不可达，10秒后再次尝试..." << std::endl;
+		std::this_thread::sleep_for(std::chrono::seconds(10));
+	}
+	
 
 
 

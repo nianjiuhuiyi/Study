@@ -27,6 +27,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpegStreamPusher", "ffmpe
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "http", "http\http.vcxproj", "{1D01EB52-462F-491D-AB68-131558ACB3EB}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "onnx", "onnx\onnx.vcxproj", "{DED5B098-DC52-4CA9-8FBF-295C83903671}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pybind11_python", "pybind11_python\pybind11_python.vcxproj", "{15A0069E-444A-4089-B083-081D0AF9ADC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -183,6 +187,30 @@ Global
 		{1D01EB52-462F-491D-AB68-131558ACB3EB}.Release|x64.Build.0 = Release|x64
 		{1D01EB52-462F-491D-AB68-131558ACB3EB}.Release|x86.ActiveCfg = Release|Win32
 		{1D01EB52-462F-491D-AB68-131558ACB3EB}.Release|x86.Build.0 = Release|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Debug|ARM.ActiveCfg = Debug|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Debug|x64.ActiveCfg = Debug|x64
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Debug|x64.Build.0 = Debug|x64
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Debug|x86.ActiveCfg = Debug|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Debug|x86.Build.0 = Debug|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Release|ARM.ActiveCfg = Release|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Release|ARM64.ActiveCfg = Release|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Release|x64.ActiveCfg = Release|x64
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Release|x64.Build.0 = Release|x64
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Release|x86.ActiveCfg = Release|Win32
+		{DED5B098-DC52-4CA9-8FBF-295C83903671}.Release|x86.Build.0 = Release|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Debug|ARM.ActiveCfg = Debug|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Debug|x64.ActiveCfg = Debug|x64
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Debug|x64.Build.0 = Debug|x64
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Debug|x86.ActiveCfg = Debug|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Debug|x86.Build.0 = Debug|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Release|ARM.ActiveCfg = Release|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Release|ARM64.ActiveCfg = Release|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Release|x64.ActiveCfg = Release|x64
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Release|x64.Build.0 = Release|x64
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Release|x86.ActiveCfg = Release|Win32
+		{15A0069E-444A-4089-B083-081D0AF9ADC5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
