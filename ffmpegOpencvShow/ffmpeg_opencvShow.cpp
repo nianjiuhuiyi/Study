@@ -188,9 +188,11 @@ void GetRGBPixels(AVFrame *frame, std::vector<Color_RGB> &buffer) {
 
 
 
-/* ffmpeg读流 + opencv做展示 */
+/* ffmpeg读流 + opencv做展示 
 
-int main() {
+// 这里把main123改回main，再把ffmpeg_send_audo.cpp中的mian函数改成其它名字，这里就可以直接运行
+*/
+int main123() {
 	const char* rtsp_path = "rtsp://192.168.108.133:554/user=admin&password=&channel=1&stream=0.sdp?";
 	DecoderParam decoderParam;
 	InitDecoder(rtsp_path, decoderParam);  // 如果file_path.c_str()是，std::string，就写成file_path.c_str()

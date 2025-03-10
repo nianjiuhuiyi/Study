@@ -18,5 +18,16 @@
     <ClCompile Include="ffmpeg_opencvShow.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="ffmpeg_send_audo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="httplib.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="safequeue.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -99,15 +99,15 @@ int main() {
 
 
 
-	{
-		std::cout << 123 << std::endl;
-		unsigned char* data = nullptr;
+	//{
+	//	std::cout << 123 << std::endl;
+	//	unsigned char* data = nullptr;
 
-		//MV_CC_PIXEL_CONVERT_PARAM mydata = {0};
-		//mydata.nWidth = 12;
-		//std::cout << mydata.nWidth << std::endl;
-		//std::cout << mydata.new_name << std::endl;
-	}
+	//	//MV_CC_PIXEL_CONVERT_PARAM mydata = {0};
+	//	//mydata.nWidth = 12;
+	//	//std::cout << mydata.nWidth << std::endl;
+	//	//std::cout << mydata.new_name << std::endl;
+	//}
 
 	/*
 	已写进笔记中
@@ -175,7 +175,7 @@ int main() {
 		std::vector<int> position = std::get<2>(item);
 		std::cout << name << ": " << conf << std::endl;
 	}
-
+	
 	system("pause");
 	return 0;
 }
