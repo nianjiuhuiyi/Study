@@ -23,7 +23,9 @@
     <ClCompile Include="ffmpeg_send_audo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="constants.h" />
     <ClInclude Include="httplib.h" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="safequeue.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

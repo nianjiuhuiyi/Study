@@ -14,6 +14,9 @@
 
 #include "httplib.h"
 #include "safequeue.hpp"
+#include "json.hpp"
+
+#include "constants.h"
 
 #include <windows.h>  // 这一定要放最后，放前面会影响其它头文件的定义，仅针对win
 
@@ -34,6 +37,16 @@ extern "C" {
 #include <libavutil/opt.h>   // av_opt_set_int 函数需要
 }
 
+
+// 音频参数
+struct audioParam {
+    unsigned int sample_rate;  // 采样率
+    unsigned int channels;     // 声道数
+    unsigned int bits_per_sample;  // 每个采样点的位数
+    unsigned int duration;  // 录音秒数（这个不一定要进进来这里）
+};
+
+
 // 全局变量
 std::queue<std::vector<uint8_t>> audio_queue; // 音频数据队列
 std::mutex audio_mutex;                      // 音频队列互斥锁
@@ -44,24 +57,41 @@ std::atomic<bool> stop_audio_thread{ false };  // 停止音频线程标志
 // 存音频文件的路径
 SafeQueue<std::string> wave_queue;
 
+// 是否删除存的音频文件
+static bool rm_flag = true;
 
+// ASR服务的地址
+static std::string ip = "192.168.108.218";
+static int port = 6789;
 
-// 音频参数
-struct audioParam {
-    unsigned int sample_rate;  // 采样率
-    unsigned int channels;     // 声道数
-    unsigned int bits_per_sample;  // 每个采样点的位数
-    unsigned int duration;  // 录音秒数（这个不一定要进进来这里）
-};
+// 后端服务
+static std::string ip_prs = "192.168.108.118";
+static int port_prs = 7712;
 
-// 指定音频采样格式
+// 指定音频采样格式 (原来OK的)
 audioParam audio_param = {
-    32000,   // 44100 也是ok
-    2,
+    16000,   // 44100 也是ok
+    1,       // 1、2 channel都是OK的
     16,
     5  // 5秒一个文件，来这里改时间
 };
 
+
+
+std::string getCurrentTime() {
+    std::tm time_info{};  // 注：使用 localtime_s 函数时，需要将 tm 结构体初始化为零
+    std::time_t timestamp = std::time(nullptr);
+    // localtime_s只在vs上才有
+    errno_t err = localtime_s(&time_info, &timestamp);     // errno_t是win才有的，linux没有
+    if (err) {  // 如果转换失败，该函数会返回一个非零的错误码
+        std::cout << "Failed to convert timestamp to time\n";
+        return "error";
+    }
+    char str[100]{};
+    //std::strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", &time_info);
+    std::strftime(str, sizeof(str), "%H:%M:%S", &time_info);
+    return str;
+}
 
 
 static double r2d(AVRational r) {
@@ -105,7 +135,13 @@ void save_audio_to_wav(const std::vector<uint8_t> &audio_data, const std::string
 }
 
 // 音频数据处理函数
-void process_audio_buffer(std::vector<uint8_t> &audio_buffer, unsigned int &audio_chunk_size) {
+//void process_audio_buffer(std::vector<uint8_t> &audio_buffer, unsigned int &audio_chunk_size) {
+void process_audio_buffer(std::deque<uint8_t> &audio_buffer, unsigned int &audio_chunk_size) {
+
+
+    // 滑动窗口是2秒：
+    unsigned int seconed_audio_chunk_size = audio_param.sample_rate * audio_param.channels * (audio_param.bits_per_sample / 8) * 2;
+
 
     while (!stop_audio_thread) {
         std::unique_lock<std::mutex> lock(audio_mutex);
@@ -122,8 +158,14 @@ void process_audio_buffer(std::vector<uint8_t> &audio_buffer, unsigned int &audi
                 // 保存音频数据为 WAV 文件
                 auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
                 std::string filename = "audio_" + std::to_string(timestamp) + ".wav";
-                save_audio_to_wav(audio_buffer, filename);
-                audio_buffer.clear();
+
+                //save_audio_to_wav(audio_buffer, filename);
+                //audio_buffer.clear();
+
+                // 不是直接清空，而是只删除前两秒数据
+                save_audio_to_wav(std::vector<uint8_t>(audio_buffer.begin(), audio_buffer.end()), filename);
+                audio_buffer.erase(audio_buffer.begin(), audio_buffer.begin() + seconed_audio_chunk_size);
+                
             }
         }
     }
@@ -152,8 +194,12 @@ std::string UTF8ToGB2312(const std::string &utf8Str) {
 
 // 发送数据
 void send_audio() {
-    std::unique_ptr<httplib::Client> client = std::make_unique<httplib::Client>("192.168.108.149", 6789);
-    
+    // 请求ASR服务的客户端
+    std::unique_ptr<httplib::Client> client = std::make_unique<httplib::Client>(ip, port);
+
+    // 请求后端的客户端
+    std::unique_ptr<httplib::Client> client_prs = std::make_unique<httplib::Client>(ip_prs, port_prs);
+
     while (!stop_audio_thread) {
         std::string file_name = wave_queue.get();
         std::ifstream file(file_name, std::ios::binary);
@@ -167,24 +213,51 @@ void send_audio() {
         httplib::MultipartFormDataItems items = {
             {"audio", file_content, file_name, "audio/wav"}
         };
+
         auto res = client->Post("/upload", items);
         file.close();
 
         // 检查请求是否成功
-        if (res && res->status == 200) {
-            std::string utf8_string = res->body;
-            std::cout << "File uploaded successfully: " << UTF8ToGB2312(utf8_string) << std::endl;
-
-            std::filesystem::remove(file_name);
-
-        }
-        else {
+        if (res && res->status != 200) {
             std::cerr << "Failed to upload file" << std::endl;
             if (res) {
                 std::cerr << "Status code: " << res->status << std::endl;
                 std::cerr << "Response body: " << res->body << std::endl;
             }
+            continue;
         }
+
+        std::string utf8_string = res->body;
+        std::string gb2312_string = UTF8ToGB2312(utf8_string);
+        //std::cout <<"  File uploaded successfully: " << UTF8ToGB2312(utf8_string) << std::endl;
+        std::cout << getCurrentTime() << "：" << gb2312_string << std::endl;
+
+        if (rm_flag) {
+            std::filesystem::remove(file_name);
+        }
+
+        if (gb2312_string.size() <= 5) {
+            //std::cout << "字符串是空的\n\n" << std::endl;
+            continue;
+        }
+
+        if (gb2312_string.find("完毕") == std::string::npos && gb2312_string.find("完成") == std::string::npos) {
+            continue;
+        }
+
+        // 发送到后端服务
+        ASR_CONTENT["timeStamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        ASR_CONTENT["result"] = utf8_string;
+        REQUEST_JSON["content"] = ASR_CONTENT.dump();
+        res = client_prs->Post("/http/push", SDG_HEADER, REQUEST_JSON.dump(), "application/json");
+        if (res) {
+            std::cout << "status: " << res->status << "\n\n" << std::endl;
+        }
+        else {
+            httplib::Error err = res.error();
+            std::cout << "Http error: " << httplib::to_string(err) << std::endl;
+        }
+       
         
     }
    
@@ -224,13 +297,17 @@ static void GetRGBPixels(AVFrame *frame, std::vector<Color_RGB> &buffer) {
     所以把“std::thread process_thread(send_audio);”这个线程注释掉就好了，
     但要注意，注释后，就不会自动删除存在本地的音频文件了，要去手动删除，不然就越来越多。
 3、把这里的main函数改成其它名字，把“ffmpeg_opencvShow.cpp”的main123改回main就是运行那个仅画面展示的demo
+----------------------------------------------------------------------------------------------------
+2025.03.25更新：
+1、把每5秒存一次改成了滑动窗口的形式，第一个5秒过后，用第三秒到第五秒+新录制的2秒组成第二个五秒的音频，即按2秒的滑动窗口
+
 */
 int main() {
     // 初始化 FFmpeg
     avformat_network_init();
 
-    //const char *input = "rtmp://192.168.108.218/live/123";
-    const char *input = "C:\\Users\\Administrator\\Videos\\audio.mp4";
+    const char *input = "rtmp://192.168.108.218/live/123";
+    //const char *input = "C:\\Users\\Administrator\\Videos\\audio.mp4";
     //const char *input = "C:\\Users\\Administrator\\Pictures\\001.mp4";
 
     // 打开 RTMP 流
@@ -242,7 +319,7 @@ int main() {
         if (ret != 0) {
             char buf[1024] = { 0 };
             av_strerror(ret, buf, sizeof(buf) - 1);
-            std::cerr << "Failed to open RTMP stream" << std::endl;
+            std::cerr << "Failed to open RTMP stream: " << buf << std::endl;
             break;
         }
 
@@ -307,12 +384,6 @@ int main() {
         cv::Mat image(cv::Size(src_w, src_h), CV_8UC3);
         std::vector<Color_RGB> buffer(src_w * src_h);
 
-        
-        // 计算5秒的大小
-        unsigned int audio_chunk_size = audio_param.sample_rate * audio_param.channels * (audio_param.bits_per_sample / 8) * audio_param.duration;
-        std::vector<uint8_t> audio_buffer;
-        audio_buffer.reserve(audio_chunk_size);
-
 
         // 初始化视频解码器
         AVCodecParameters *video_codecpar = video_stream->codecpar;
@@ -323,7 +394,8 @@ int main() {
 
         // 初始化音频解码器
         AVCodecParameters *audio_codecpar = audio_stream->codecpar;
-        AVCodec *audio_codec = const_cast<AVCodec*>(avcodec_find_decoder(audio_codecpar->codec_id));
+        //AVCodec *audio_codec = const_cast<AVCodec*>(avcodec_find_decoder(audio_codecpar->codec_id));
+        const AVCodec *audio_codec = avcodec_find_decoder(audio_codecpar->codec_id);
         AVCodecContext *audio_codec_ctx = avcodec_alloc_context3(audio_codec);
        
         avcodec_parameters_to_context(audio_codec_ctx, audio_codecpar);
@@ -342,21 +414,44 @@ int main() {
             // 如果声道布局未指定，使用默认布局
             av_channel_layout_default(&in_chlayout, audio_codecpar->ch_layout.nb_channels);
         }
+
+
         // 设置输入参数
         av_opt_set_chlayout(swr_ctx, "in_chlayout", &in_chlayout, 0);
         av_opt_set_int(swr_ctx, "in_sample_rate", audio_codecpar->sample_rate, 0);
         av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt", audio_codec_ctx->sample_fmt, 0);
+        
         // 设置输出参数
-        av_opt_set_chlayout(swr_ctx, "out_chlayout", &audio_codecpar->ch_layout, 0);
+        AVChannelLayout out_chlayout;
+        if (audio_param.channels == 1) {
+            av_channel_layout_default(&out_chlayout, 1);   // 设为单声道布局
+        }
+        else {
+            // channel为2
+            av_channel_layout_default(&out_chlayout, 2);   // 设为双声道布局
+        }
+        av_opt_set_chlayout(swr_ctx, "out_chlayout", &out_chlayout, 0);
         av_opt_set_int(swr_ctx, "out_sample_rate", audio_param.sample_rate, 0);
         av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);  // 暂时只能是 AV_SAMPLE_FMT_S16;
         
+        // 设置混音方式（默认是左右声道平均混合）（在把原始音频从2通道转成1通道，可选，非必须）
+        if (audio_stream->codecpar->ch_layout.nb_channels == 2 && audio_param.channels == 1) {
+            av_opt_set_int(swr_ctx, "rematrix", 1, 0);  // 启用重矩阵
+            av_opt_set_double(swr_ctx, "clev", 0.707, 0);  // 中心混合系数
+        }
 
         // 初始化 SwrContext
         if (swr_init(swr_ctx) < 0) {
             std::cerr << "Failed to initialize SwrContext" << std::endl;
             break;
         }
+
+        // 计算5秒的大小
+        unsigned int audio_chunk_size = audio_param.sample_rate * audio_param.channels * (audio_param.bits_per_sample / 8) * audio_param.duration;
+        //std::vector<uint8_t> audio_buffer;
+        //audio_buffer.reserve(audio_chunk_size);
+        // 从vector改成双端队列，方便滑动窗口
+        std::deque<uint8_t> audio_buffer;
 
         // 音频处理线程
         std::thread audio_thread(process_audio_buffer, std::ref(audio_buffer), std::ref(audio_chunk_size));
@@ -383,8 +478,8 @@ int main() {
                         GetRGBPixels(frame, buffer);  // 解码调用
                         image.data = reinterpret_cast<uint8_t *>(&buffer[0]);
                         cv::imshow("Video", image);
-                        //cv::waitKey(33);
-                        cv::waitKey(static_cast<int>(1000.0 / fps));
+                        cv::waitKey(1);   // 直播流不要像下面这样暂停很久
+                        //cv::waitKey(static_cast<int>(1000.0 / fps));
                     }
                 }
             }
